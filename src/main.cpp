@@ -12,7 +12,9 @@ int main(int argc, char* argv[]) {
 
     Chip8 chip8;
 
-    chip8.LoadROM(filename);
+    if (!chip8.loadROM(filename)) {
+        return 1;
+    }
 
     return 0;
 }

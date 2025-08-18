@@ -21,8 +21,8 @@ private:
 
 public:
     Chip8();
-    ~Chip8();
+    ~Chip8() = default;
 
-    void LoadROM(const char* filename);
-    void Cycle();
+    bool loadROM(const char* filename);
+    void cycle();
 };
