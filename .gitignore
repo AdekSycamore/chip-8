@@ -1,2 +1,2 @@
-test_opcode.ch8
-build/*
+build/
+cmake-build-*/
