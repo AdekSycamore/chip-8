@@ -14,3 +14,13 @@ add_executable(chip8
     src/utils.cpp
 )
 target_link_libraries(chip8 ncurses ncursesw)
+
+# Add install target
+install(TARGETS chip8 
+    RUNTIME DESTINATION bin
+)
+
+# Optionally install README
+install(FILES README.md 
+    DESTINATION share/doc/chip8-emulator
+)

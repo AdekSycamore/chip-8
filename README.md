@@ -23,6 +23,10 @@ CHIP-8 is an interpreted programming language developed by Joseph Weisbecker in 
 - ncurses library
 - A terminal that supports Unicode characters
 
+**OR**
+
+- Nix package manager (recommended for reproducible builds)
+
 ### Installing Dependencies
 
 **macOS:**
@@ -42,6 +46,36 @@ sudo pacman -S cmake ncurses
 
 ## Building
 
+### Using Nix (Recommended)
+
+**With Nix flakes:**
+```bash
+# Clone the repository
+git clone https://github.com/AdekSycamore/chip-8.git
+cd chip-8
+
+# Build the project
+nix build
+
+# Run directly without building locally
+nix run . -- path/to/rom.ch8
+
+# Enter development environment
+nix develop
+```
+
+**With legacy Nix:**
+```bash
+# Enter development environment
+nix-shell
+
+# Then build normally
+mkdir build && cd build
+cmake .. && make
+```
+
+### Using traditional tools
+
 ```bash
 # Clone the repository
 git clone https://github.com/AdekSycamore/chip-8.git
@@ -58,6 +92,16 @@ make
 
 ## Usage
 
+### With Nix
+```bash
+# Run directly from Nix store
+nix run . -- path/to/rom.ch8
+
+# Or after building
+./result/bin/chip8-emulator path/to/rom.ch8
+```
+
+### Traditional build
 ```bash
 # Run the emulator with a ROM file
 ./chip8 path/to/rom.ch8
