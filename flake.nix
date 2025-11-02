@@ -31,7 +31,6 @@
             "-DCMAKE_BUILD_TYPE=Release"
           ];
 
-          # Override install phase since we may not have install targets
           installPhase = ''
             runHook preInstall
             
@@ -55,7 +54,7 @@
             cmake
             pkg-config
             ncurses
-          ] ++ debugTools;
+          ];
           
           shellHook = ''
             echo "CHIP-8 Emulator Development Environment"
