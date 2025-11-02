@@ -3,14 +3,7 @@
 #include <fstream>
 #include <iostream>
 #include <stdexcept>
-#include <chrono>
-#include <unistd.h>
-#include <termios.h>
-#include <fcntl.h>
-#include <cstdio>
-#include <string>
-#include <sstream>
-#include <iomanip>
+#include <algorithm>
 
 constexpr unsigned int FONT_SIZE = 80;
 constexpr unsigned int FONT_START_ADDRESS = 0x50;
@@ -62,14 +55,14 @@ void Chip8::initialize()
 
 void Chip8::initTables()
 {
-    // ustaw wszystkie wpisy tablic na OP_NULL
+    // set all table entries to OP_NULL
     table.fill(&Chip8::OP_NULL);
     table0.fill(&Chip8::OP_NULL);
     table8.fill(&Chip8::OP_NULL);
     tableE.fill(&Chip8::OP_NULL);
     tableF.fill(&Chip8::OP_NULL);
 
-    // główna tablica
+    // main table
     table[0x0] = &Chip8::Table0;
     table[0x1] = &Chip8::OP_1nnn;
     table[0x2] = &Chip8::OP_2nnn;
@@ -87,11 +80,11 @@ void Chip8::initTables()
     table[0xE] = &Chip8::TableE;
     table[0xF] = &Chip8::TableF;
 
-    // tablica 0x0*** - zmniejszamy rozmiar
-    table0[0x00] = &Chip8::OP_00E0;  // dla 0x00E0
-    table0[0x0E] = &Chip8::OP_00EE;  // dla 0x00EE
+    // table 0x0***
+    table0[0xE0] = &Chip8::OP_00E0;
+    table0[0xEE] = &Chip8::OP_00EE;
 
-    // tablica 0x8***
+    // table 0x8***
     table8[0x0] = &Chip8::OP_8xy0;
     table8[0x1] = &Chip8::OP_8xy1;
     table8[0x2] = &Chip8::OP_8xy2;
@@ -102,11 +95,11 @@ void Chip8::initTables()
     table8[0x7] = &Chip8::OP_8xy7;
     table8[0xE] = &Chip8::OP_8xyE;
 
-    // tablica 0xE***
-    tableE[0x1] = &Chip8::OP_ExA1;
-    tableE[0xE] = &Chip8::OP_Ex9E;
+    // table 0xE***
+    tableE[0x9E] = &Chip8::OP_Ex9E;
+    tableE[0xA1] = &Chip8::OP_ExA1;
 
-    // tablica 0xF***
+    // table 0xF***
     tableF[0x07] = &Chip8::OP_Fx07;
     tableF[0x0A] = &Chip8::OP_Fx0A;
     tableF[0x15] = &Chip8::OP_Fx15;
@@ -122,30 +115,42 @@ void Chip8::Table0()
 {
     auto opcodeId = opcode & 0x00FF;
     auto handler = table0[opcodeId];
+    if (handler == &Chip8::OP_NULL) {
+        std::cout << "[DEBUG] Unknown instruction 0x0***: " << std::hex << opcode << std::dec << std::endl;
+    }
     (this->*handler)();
 }
 
-// Tablica 0x8***
+// Table 0x8***
 void Chip8::Table8()
 {
     auto opcodeId = opcode & 0x000F;
     auto handler = table8[opcodeId];
+    if (handler == &Chip8::OP_NULL) {
+        std::cout << "[DEBUG] Unknown instruction 0x8***: " << std::hex << opcode << std::dec << std::endl;
+    }
     (this->*handler)();
 }
 
-// Tablica 0xE***
+// Table 0xE***
 void Chip8::TableE()
 {
     auto opcodeId = opcode & 0x00FF;
     auto handler = tableE[opcodeId];
+    if (handler == &Chip8::OP_NULL) {
+        std::cout << "[DEBUG] Unknown instruction 0xE***: " << std::hex << opcode << std::dec << std::endl;
+    }
     (this->*handler)();
 }
 
-// Tablica 0xF***
+// Table 0xF***
 void Chip8::TableF()
 {
     auto opcodeId = opcode & 0x00FF;
     auto handler = tableF[opcodeId];
+    if (handler == &Chip8::OP_NULL) {
+        std::cout << "[DEBUG] Unknown instruction 0xF***: " << std::hex << opcode << std::dec << std::endl;
+    }
     (this->*handler)();
 }
 
@@ -178,59 +183,19 @@ bool Chip8::loadROM(const char *filename)
     }
 }
 
-void Chip8::cycle()
-{
+void Chip8::cycle() {
     opcode = (memory[pc] << 8) | memory[pc + 1];
     pc += 2;
 
+    uint8_t mainNibble = static_cast<uint8_t>((opcode & 0xF000) >> 12);
+    auto handler = table[mainNibble];
     
-    switch (opcode & 0xF000) {
-    case 0x0:  
-        switch (opcode & 0x00FF) {
-        case 0xE0: OP_00E0(); break;
-        case 0xEE: OP_00EE(); break;
-        default:
-            std::cout << "[DEBUG] Nieznana 0x0*** instrukcja: " << std::hex << opcode << std::endl;
-            break;
-        }
-        break;
-
-    case 0x8:
-        {
-            auto opcodeId = opcode & 0x000F;
-            auto handler = table8[opcodeId];
-            (this->*handler)();
-        }
-        break;
-
-    case 0xE:
-        {
-            auto opcodeId = opcode & 0x00FF;
-            auto handler = tableE[opcodeId];
-            (this->*handler)();
-        }
-        break;
-
-    case 0xF:
-        {
-            auto opcodeId = opcode & 0x00FF;
-            auto handler = tableF[opcodeId];
-            (this->*handler)();
-        }
-        break;
-
-    default:
-        {
-            auto handler = table[(opcode & 0xF000) >> 12];
-            (this->*handler)();
-        }
-        break;
-    }
+    (this->*handler)();
 }
+
 
 void Chip8::updateKeypad(int ch)
 {
-    
     switch (ch)
     {
         case '1': keypad[0x1] = 1; break;
@@ -254,7 +219,7 @@ void Chip8::updateKeypad(int ch)
         case 'v': keypad[0xF] = 1; break;
 
         default:
-            // nieobsługiwany klawisz – nic nie robimy
+            // unsupported key - do nothing
             break;
     }
 }
@@ -283,11 +248,6 @@ void Chip8::updateTimers()
     }
 }
 
-void Chip8::render()
-{
-    display.render();
-}
-
 uint8_t Chip8::randomByte()
 {
     static std::random_device rd; 
@@ -308,7 +268,7 @@ Instruction Chip8::decodeOpcode() const
     return inst;
 }
 
-// Instrukcje 0x0***
+// Instructions 0x0***
 void Chip8::OP_00E0()
 {
     display.clear();
@@ -320,7 +280,7 @@ void Chip8::OP_00EE()
     pc = stack[sp];
 }
 
-// Instrukcje 0x1***
+// Instructions 0x1***
 void Chip8::OP_1nnn()
 {
     Instruction inst = decodeOpcode();
@@ -380,7 +340,7 @@ void Chip8::OP_7xkk()
     registers[inst.x] += inst.kk;
 }
 
-// Instrukcje 0x8***
+// Instructions 0x8***
 void Chip8::OP_8xy0()
 {
     Instruction inst = decodeOpcode();
@@ -421,12 +381,12 @@ void Chip8::OP_8xy5()
 
     if (registers[inst.x] >= registers[inst.y])
     {
-        registers[0xF] = 1; // brak pożyczki
+        registers[0xF] = 1; // no borrow
         registers[inst.x] -= registers[inst.y];
     }
     else
     {
-        registers[0xF] = 0; // jest pożyczka
+        registers[0xF] = 0; // borrow
         registers[inst.x] = (uint8_t)(registers[inst.x] - registers[inst.y]);
     }
 }
@@ -453,7 +413,7 @@ void Chip8::OP_8xyE()
     registers[inst.x] <<= 1;
 }
 
-// Instrukcje 0x9*** – 0xD***
+// Instructions 0x9*** - 0xD***
 void Chip8::OP_9xy0()
 {
     Instruction inst = decodeOpcode();
@@ -487,8 +447,8 @@ void Chip8::OP_Dxyn()
 {
     Instruction inst = decodeOpcode();
 
-    uint8_t xPos = registers[inst.x] % 64;
-    uint8_t yPos = registers[inst.y] % 32;
+    uint8_t xPos = registers[inst.x] % Display::WIDTH;
+    uint8_t yPos = registers[inst.y] % Display::HEIGHT;
 
     registers[0xF] = 0;
 
@@ -499,9 +459,10 @@ void Chip8::OP_Dxyn()
         {
             if ((spriteByte & (0x80 >> col)) != 0)
             {
-                uint32_t &pixelRef = display.pixels[(yPos + row) * Display::WIDTH + (xPos + col)];
+                uint32_t &pixelRef = display.pixels[((yPos + row) % Display::HEIGHT) * Display::WIDTH + ((xPos + col) % Display::WIDTH)];
+
                 if (pixelRef != 0)
-                    registers[0xF] = 1; // kolizja
+                    registers[0xF] = 1; // collision
 
                 display.setPixel(xPos + col, yPos + row, pixelRef == 0);
             }
@@ -509,7 +470,7 @@ void Chip8::OP_Dxyn()
     }
 }
 
-// Instrukcje 0xE***
+// Instructions 0xE***
 void Chip8::OP_Ex9E()
 {
     Instruction inst = decodeOpcode();
@@ -532,7 +493,7 @@ void Chip8::OP_ExA1()
     }
 }
 
-// Instrukcje 0xF***
+// Instructions 0xF***
 void Chip8::OP_Fx07()
 {
     Instruction inst = decodeOpcode();

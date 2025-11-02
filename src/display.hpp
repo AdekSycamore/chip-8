@@ -1,6 +1,7 @@
 #pragma once
 #include <array>
 #include <cstdint>
+#include <ncurses.h>
 
 class Display {
 public:
@@ -10,10 +11,13 @@ public:
     Display() = default;
 
     void clear();
+    void initNcurses();
     void render();
     void setPixel(int x, int y, bool value);
-    void drawFrame() const;
-    void drawPixels() const;
+    void drawFrame();
 
     std::array<uint32_t, WIDTH * HEIGHT> pixels{};
+
+private:
+    bool frameDrawn{false};
 };

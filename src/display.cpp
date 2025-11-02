@@ -1,46 +1,77 @@
 #include "display.hpp"
 #include <iostream>
 #include <ncurses.h>
+#include <locale.h>
 
-void Display::clear() {
-    pixels.fill(0);
+void Display::initNcurses()
+{
+    setlocale(LC_ALL, "");
+    initscr();
+    noecho();
+    curs_set(FALSE);
+    keypad(stdscr, TRUE);
+    nodelay(stdscr, TRUE);
+    cbreak();
 }
 
-void Display::setPixel(int x, int y, bool value) {
-    if (x < 0 || x >= WIDTH || y < 0 || y >= HEIGHT) return;
+void Display::render()
+{
+    if (!frameDrawn)
+    {
+        clear();
+        drawFrame();
+        frameDrawn = true;
+    }
+
+    for (int y = 0; y < HEIGHT; y += 2)
+    {
+        for (int x = 0; x < WIDTH; ++x)
+        {
+            uint32_t curTop = pixels[y * WIDTH + x];
+            uint32_t curBottom = (y + 1 < HEIGHT) ? pixels[(y + 1) * WIDTH + x] : 0;
+
+            const char *c = (curTop && curBottom) ? "█"
+                            : curTop              ? "▀"
+                            : curBottom           ? "▄"
+                                                  : " ";
+
+            mvaddstr((y / 2) + 1, x + 1, c);
+        }
+    }
+
+    refresh();
+}
+
+void Display::drawFrame()
+{
+    int rows = (HEIGHT / 2) + 2;
+    int cols = WIDTH + 2;
+    
+    for (int x = 1; x < cols - 1; ++x) {
+        mvaddstr(0, x, "─");
+        mvaddstr(rows - 1, x, "─");
+    }
+
+    for (int y = 1; y < rows - 1; ++y) {
+        mvaddstr(y, 0, "│");
+        mvaddstr(y, cols - 1, "│");
+    }
+
+    mvaddstr(0, 0, "┌");
+    mvaddstr(0, cols - 1, "┐");
+    mvaddstr(rows - 1, 0, "└");
+    mvaddstr(rows - 1, cols - 1, "┘");
+}
+
+void Display::setPixel(int x, int y, bool value)
+{
+    if (x < 0 || x >= WIDTH || y < 0 || y >= HEIGHT)
+        return;
     pixels[y * WIDTH + x] = value ? 0xFFFFFFFF : 0;
 }
 
-void Display::drawFrame() const {
-    // górna i dolna linia
-    for (int x = 0; x < WIDTH + 2; ++x) {
-        mvaddch(0, x, '-');
-        mvaddch(HEIGHT + 1, x, '-');
-    }
-    // boczne linie
-    for (int y = 1; y <= HEIGHT; ++y) {
-        mvaddch(y, 0, '|');
-        mvaddch(y, WIDTH + 1, '|');
-    }
-    // rogi
-    mvaddch(0, 0, '+');
-    mvaddch(0, WIDTH + 1, '+');
-    mvaddch(HEIGHT + 1, 0, '+');
-    mvaddch(HEIGHT + 1, WIDTH + 1, '+');
-}
-
-void Display::drawPixels() const {
-    for (int y = 0; y < HEIGHT; ++y) {
-        for (int x = 0; x < WIDTH; ++x) {
-            const char* c = pixels[y * WIDTH + x] ? "█" : " ";
-            mvaddstr(y + 1, x + 1, c); // +1 dla ramki
-        }
-    }
-}
-
-void Display::render() {
-    ::clear();  // Call ncurses clear() function
-    drawFrame();
-    drawPixels();
-    refresh();
+void Display::clear()
+{
+    pixels.fill(0);
+    frameDrawn = false;
 }
