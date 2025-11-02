@@ -23,7 +23,7 @@ private:
     uint8_t sp{};
 
     std::array<uint8_t, 4096> memory{};
-    std::array<uint8_t, 16> keypad{};  // Przeniesione z public
+    std::array<uint8_t, 16> keypad{};
 
     uint8_t delayTimer{};
     uint8_t soundTimer{};

@@ -573,5 +573,5 @@ void Chip8::OP_Fx65()
 // Dummy handler
 void Chip8::OP_NULL()
 {
-    // std::cout << "OP_NULL" << std::endl;
+    std::cout << "[DEBUG] Unknown instruction" << std::endl;
 }
