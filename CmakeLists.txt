@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.20)
 project(chip8)
 
-set(CMAKE_CXX>STANDARD 23)
+set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 include_directories(/opt/homebrew/opt/ncurses/include)
